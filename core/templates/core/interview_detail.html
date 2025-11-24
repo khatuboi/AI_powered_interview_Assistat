@@ -1,0 +1,139 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Interview Details - AI Interview System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-file-alt"></i> Interview Report</h2>
+            <a href="{% url 'interviewer_dashboard' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left"></i> Back to Dashboard
+            </a>
+        </div>
+
+        <!-- Candidate Info -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-user"></i> Candidate Information</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Username:</strong> {{ session.candidate.user.username }}</p>
+                        <p><strong>Name:</strong> {{ session.candidate.name|default:'Not provided' }}</p>
+                        <p><strong>Email:</strong> {{ session.candidate.email|default:'Not provided' }}</p>
+                        <p><strong>Phone:</strong> {{ session.candidate.phone|default:'Not provided' }}</p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Role Applied For:</strong> {{ session.get_role_display }}</p>
+                        <p><strong>Interview Status:</strong>
+                            <span class="badge bg-{% if session.status == 'completed' %}success{% elif session.status == 'in_progress' %}primary{% else %}warning{% endif %}">
+                                {{ session.get_status_display }}
+                            </span>
+                        </p>
+                        <p><strong>Started:</strong> {{ session.created_at|date:"M d, Y H:i" }}</p>
+                        {% if session.completed_at %}
+                        <p><strong>Completed:</strong> {{ session.completed_at|date:"M d, Y H:i" }}</p>
+                        {% endif %}
+                        {% if session.final_score %}
+                        <p><strong>Final Score:</strong>
+                            <span class="h4 text-{% if session.final_score >= 70 %}success{% elif session.final_score >= 50 %}warning{% else %}danger{% endif %}">
+                                {{ session.final_score }}/100
+                            </span>
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                {% if session.candidate.resume %}
+                <div class="mt-3">
+                    <a href="{{ session.candidate.resume.url }}" target="_blank" class="btn btn-outline-primary">
+                        <i class="fas fa-file-pdf"></i> View Resume
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- AI Summary -->
+        {% if session.summary %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-brain"></i> AI Summary</h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-info">
+                    {{ session.summary }}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Questions and Answers -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-question-circle"></i> Questions & Answers ({{ questions|length }})</h5>
+            </div>
+            <div class="card-body">
+                {% for question in questions %}
+                <div class="question-answer mb-4 p-3 border rounded">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h6 class="mb-0">
+                            Question {{ question.order }} ({{ question.get_difficulty_display }})
+                        </h6>
+                        {% if question.answer and question.answer.score %}
+                        <span class="badge bg-{% if question.answer.score >= 7 %}success{% elif question.answer.score >= 5 %}warning{% else %}danger{% endif %}">
+                            Score: {{ question.answer.score }}/10
+                        </span>
+                        {% endif %}
+                    </div>
+
+                    <div class="question-text mb-3">
+                        <strong>{{ question.question_text }}</strong>
+                    </div>
+
+                    {% if question.answer %}
+                    <div class="answer-section">
+                        <h6>Candidate's Answer:</h6>
+                        <div class="answer-text p-3 bg-light rounded">
+                            {{ question.answer.answer_text }}
+                        </div>
+
+                        {% if question.answer.feedback %}
+                        <div class="feedback-section mt-3">
+                            <h6>AI Feedback:</h6>
+                            <div class="alert alert-info">
+                                {{ question.answer.feedback }}
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <small class="text-muted">
+                            Answered on {{ question.answer.answered_at|date:"M d, Y H:i" }}
+                        </small>
+                    </div>
+                    {% else %}
+                    <div class="text-muted">
+                        <em>No answer provided</em>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.question-answer {
+    background-color: #f8f9fa;
+}
+.question-answer:nth-child(even) {
+    background-color: #ffffff;
+}
+.answer-text {
+    white-space: pre-wrap;
+    font-family: inherit;
+}
+</style>
+{% endblock %}

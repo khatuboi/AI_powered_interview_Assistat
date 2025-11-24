@@ -1,0 +1,223 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Interview - AI Interview System{% endblock %}
+
+{% block extra_js %}
+<script>
+let timer;
+let timeLeft = 300; // 5 minutes per question
+
+function startTimer() {
+    timer = setInterval(() => {
+        timeLeft--;
+        updateTimerDisplay();
+
+        if (timeLeft <= 0) {
+            clearInterval(timer);
+            autoSubmit();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    const minutes = Math.floor(timeLeft / 60);
+    const seconds = timeLeft % 60;
+    document.getElementById('timer').textContent = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+}
+
+function autoSubmit() {
+    document.getElementById('answer-form').submit();
+}
+
+async function submitAnswer() {
+    const form = document.getElementById('answer-form');
+    const formData = new FormData(form);
+    const answer = formData.get('answer').trim();
+
+    if (!answer) {
+        alert('Please provide an answer before submitting.');
+        return;
+    }
+
+    // Disable form while submitting
+    const submitBtn = document.getElementById('submit-btn');
+    const originalText = submitBtn.textContent;
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Evaluating...';
+
+    try {
+        const response = await fetch('{% url "submit_answer" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                question_id: {{ current_question.id }},
+                answer: answer
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Show score and feedback
+            document.getElementById('score-display').textContent = `${data.score}/10`;
+            document.getElementById('feedback-display').textContent = data.feedback;
+
+            // Show results modal
+            const modal = new bootstrap.Modal(document.getElementById('resultsModal'));
+            modal.show();
+
+            // Auto-redirect after showing results
+            setTimeout(() => {
+                window.location.reload();
+            }, 5000);
+        } else {
+            alert('Error: ' + data.error);
+            submitBtn.disabled = false;
+            submitBtn.textContent = originalText;
+        }
+    } catch (error) {
+        alert('Network error. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = originalText;
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    startTimer();
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-question-circle"></i> {{ session.get_role_display }} Interview</h5>
+                <div class="text-end">
+                    <div class="timer mb-1" id="timer">5:00</div>
+                    <small class="text-muted">Time remaining</small>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Progress Bar -->
+                <div class="mb-4">
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: {{ progress_percentage }}%"
+                             aria-valuenow="{{ progress_percentage }}" aria-valuemin="0" aria-valuemax="100">
+                            Question {{ answered_count }} of {{ total_questions }}
+                        </div>
+                    </div>
+                    <small class="text-muted mt-1">Progress: {{ answered_count }}/{{ total_questions }} questions answered</small>
+                </div>
+
+                {% if current_question %}
+                <div class="question-section">
+                    <h4 class="mb-3">Question {{ current_question.order }}</h4>
+                    <div class="alert alert-info">
+                        <strong>{{ current_question.question_text }}</strong>
+                    </div>
+
+                    <form id="answer-form" method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="id_answer" class="form-label">Your Answer:</label>
+                            <textarea class="form-control" id="id_answer" name="answer" rows="8"
+                                      placeholder="Type your answer here..." required></textarea>
+                        </div>
+                        <button type="button" id="submit-btn" class="btn btn-primary btn-lg" onclick="submitAnswer()">
+                            <i class="fas fa-paper-plane"></i> Submit Answer
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <!-- Interview Complete -->
+                <div class="text-center">
+                    <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                    <h3>Interview Completed!</h3>
+                    {% if session.final_score %}
+                    <p class="lead">Final Score: <strong>{{ session.final_score }}/100</strong></p>
+                    {% if session.summary %}
+                    <div class="alert alert-info text-start">
+                        <h6>AI Summary:</h6>
+                        <p>{{ session.summary }}</p>
+                    </div>
+                    {% endif %}
+                    {% endif %}
+                    <a href="{% url 'candidate_dashboard' %}" class="btn btn-primary">Return to Dashboard</a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <!-- Interview Stats -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h6><i class="fas fa-chart-bar"></i> Session Info</h6>
+            </div>
+            <div class="card-body">
+                <p><strong>Role:</strong> {{ session.get_role_display }}</p>
+                <p><strong>Status:</strong>
+                    <span class="badge bg-{% if session.status == 'completed' %}success{% elif session.status == 'in_progress' %}primary{% else %}warning{% endif %}">
+                        {{ session.get_status_display }}
+                    </span>
+                </p>
+                <p><strong>Started:</strong> {{ session.created_at|date:"M d, Y H:i" }}</p>
+                {% if session.final_score %}
+                <p><strong>Final Score:</strong> {{ session.final_score }}/100</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Previous Answers -->
+        {% if answered_count > 0 %}
+        <div class="card">
+            <div class="card-header">
+                <h6><i class="fas fa-history"></i> Previous Answers</h6>
+            </div>
+            <div class="card-body">
+                {% for question in session.questions.all %}
+                {% if question.answer %}
+                <div class="mb-3 p-2 border rounded small">
+                    <strong>Q{{ question.order }}:</strong> {{ question.question_text|truncatechars:50 }}
+                    <br><strong>Score:</strong> {{ question.answer.score|default:"N/A" }}/10
+                </div>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Results Modal -->
+<div class="modal fade" id="resultsModal" tabindex="-1" aria-labelledby="resultsModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="resultsModalLabel">Answer Evaluation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-3">
+                    <h3 class="text-primary" id="score-display">--/10</h3>
+                    <p>Your score for this question</p>
+                </div>
+                <div class="alert alert-info">
+                    <h6>AI Feedback:</h6>
+                    <p id="feedback-display">Loading feedback...</p>
+                </div>
+                <p class="text-muted small">This modal will close automatically in 5 seconds, and you'll proceed to the next question.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Candidate Dashboard - AI Interview System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h2 class="mb-4"><i class="fas fa-tachometer-alt"></i> Welcome, {{ profile.name|default:user.username }}!</h2>
+
+        {% if not profile.resume %}
+        <div class="alert alert-warning">
+            <i class="fas fa-exclamation-triangle"></i> Please upload your resume to get started with personalized interviews.
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <i class="fas fa-check-circle"></i> Resume uploaded successfully! You can now start interviews.
+        </div>
+        {% endif %}
+
+        <!-- Resume Upload Section -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-file-upload"></i> Resume Information</h5>
+            </div>
+            <div class="card-body">
+                {% if profile.resume %}
+                    <div class="row">
+                        <div class="col-md-6">
+                            <p><strong>Name:</strong> {{ profile.name|default:'Not extracted' }}</p>
+                            <p><strong>Email:</strong> {{ profile.email|default:'Not extracted' }}</p>
+                            <p><strong>Phone:</strong> {{ profile.phone|default:'Not extracted' }}</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p><strong>Resume:</strong> <a href="{{ profile.resume.url }}" target="_blank">View Resume</a></p>
+                            <small class="text-muted">Uploaded on {{ profile.created_at|date:"M d, Y" }}</small>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No resume uploaded yet.</p>
+                {% endif %}
+                <hr>
+                <form method="post" enctype="multipart/form-data" action="{% url 'candidate_dashboard' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="resume_upload" value="1">
+                    <div class="mb-3">
+                        <label for="id_resume" class="form-label">Upload Resume (PDF or DOCX)</label>
+                        <input type="file" class="form-control" id="id_resume" name="resume" accept=".pdf,.docx" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Upload Resume</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Role Selection Section -->
+        {% if profile.resume %}
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-briefcase"></i> Start New Interview</h5>
+            </div>
+            <div class="card-body">
+                <p>Select the role you want to interview for:</p>
+                <form method="post" action="{% url 'candidate_dashboard' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="role_selection" value="1">
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="frontend" value="frontend" required>
+                                <label class="form-check-label" for="frontend">
+                                    <strong>Frontend Developer</strong><br>
+                                    <small class="text-muted">HTML, CSS, JavaScript, React, Vue</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="backend" value="backend">
+                                <label class="form-check-label" for="backend">
+                                    <strong>Backend Developer</strong><br>
+                                    <small class="text-muted">Python, Node.js, APIs, Databases</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="role" id="data_analyst" value="data_analyst">
+                                <label class="form-check-label" for="data_analyst">
+                                    <strong>Data Analyst</strong><br>
+                                    <small class="text-muted">SQL, Python, Statistics, Visualization</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success btn-lg">Start Interview</button>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-4">
+        <!-- Interview History -->
+        <div class="card">
+            <div class="card-header">
+                <h5><i class="fas fa-history"></i> Interview History</h5>
+            </div>
+            <div class="card-body">
+                {% if sessions %}
+                    {% for session in sessions %}
+                    <div class="mb-3 p-3 border rounded">
+                        <h6>{{ session.get_role_display }}</h6>
+                        <p class="mb-1"><strong>Status:</strong>
+                            <span class="badge bg-{% if session.status == 'completed' %}success{% elif session.status == 'in_progress' %}primary{% else %}warning{% endif %}">
+                                {{ session.get_status_display }}
+                            </span>
+                        </p>
+                        {% if session.final_score %}
+                        <p class="mb-1"><strong>Score:</strong> {{ session.final_score }}/100</p>
+                        {% endif %}
+                        <p class="mb-0 small text-muted">{{ session.created_at|date:"M d, Y H:i" }}</p>
+                        {% if session.status == 'in_progress' %}
+                        <a href="{% url 'interview' session.id %}" class="btn btn-sm btn-outline-primary mt-2">Resume Interview</a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No interviews completed yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

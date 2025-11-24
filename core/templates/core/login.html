@@ -1,0 +1,52 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Login - AI Interview System{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-primary text-white text-center">
+                <h4><i class="fas fa-sign-in-alt"></i> Login</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="id_username" class="form-label">Username</label>
+                        <input type="text" class="form-control" id="id_username" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="id_password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="id_password" name="password" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Login as:</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="role" id="candidate" value="candidate" checked>
+                            <label class="form-check-label" for="candidate">
+                                Candidate
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="role" id="interviewer" value="interviewer">
+                            <label class="form-check-label" for="interviewer">
+                                Interviewer
+                            </label>
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <button type="submit" class="btn btn-primary">Login</button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer text-center">
+                <p class="mb-0">Don't have an account?
+                    <a href="{% url 'register_candidate' %}">Register as Candidate</a> or
+                    <a href="{% url 'register_interviewer' %}">Register as Interviewer</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

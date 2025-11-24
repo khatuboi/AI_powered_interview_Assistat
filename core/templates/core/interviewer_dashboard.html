@@ -1,0 +1,156 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Interviewer Dashboard - AI Interview System{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="mb-4"><i class="fas fa-user-tie"></i> Interviewer Dashboard</h2>
+
+        <!-- Search and Filter -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5><i class="fas fa-search"></i> Filter Candidates</h5>
+            </div>
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label for="search" class="form-label">Search</label>
+                        <input type="text" class="form-control" id="search" name="search"
+                               value="{{ search_query }}" placeholder="Search by name or username">
+                    </div>
+                    <div class="col-md-3">
+                        <label for="role" class="form-label">Role</label>
+                        <select class="form-control" id="role" name="role">
+                            <option value="">All Roles</option>
+                            {% for role_value, role_display in roles %}
+                            <option value="{{ role_value }}" {% if role_filter == role_value %}selected{% endif %}>
+                                {{ role_display }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="status" class="form-label">Status</label>
+                        <select class="form-control" id="status" name="status">
+                            <option value="">All Status</option>
+                            {% for status_value, status_display in statuses %}
+                            <option value="{{ status_value }}" {% if status_filter == status_value %}selected{% endif %}>
+                                {{ status_display }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary me-2">Filter</button>
+                        <a href="{% url 'interviewer_dashboard' %}" class="btn btn-outline-secondary">Clear</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Candidates Table -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5><i class="fas fa-users"></i> Candidates ({{ sessions.count }})</h5>
+                <small class="text-muted">Click on a candidate to view detailed report</small>
+            </div>
+            <div class="card-body">
+                {% if sessions %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Candidate</th>
+                                <th>Role</th>
+                                <th>Final Score</th>
+                                <th>Status</th>
+                                <th>Completed</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for session in sessions %}
+                            <tr class="clickable-row" onclick="window.location='{% url 'interview_detail' session.id %}'" style="cursor: pointer;">
+                                <td>
+                                    <strong>{{ session.candidate.user.username }}</strong>
+                                    {% if session.candidate.name %}
+                                    <br><small class="text-muted">{{ session.candidate.name }}</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ session.get_role_display }}</span>
+                                </td>
+                                <td>
+                                    {% if session.final_score %}
+                                        <span class="badge bg-{% if session.final_score >= 70 %}success{% elif session.final_score >= 50 %}warning{% else %}danger{% endif %}">
+                                            {{ session.final_score }}/100
+                                        </span>
+                                    {% else %}
+                                        <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if session.status == 'completed' %}success{% elif session.status == 'in_progress' %}primary{% else %}warning{% endif %}">
+                                        {{ session.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if session.completed_at %}
+                                        {{ session.completed_at|date:"M d, Y H:i" }}
+                                    {% else %}
+                                        <span class="text-muted">In Progress</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{% url 'interview_detail' session.id %}" class="btn btn-sm btn-outline-primary" onclick="event.stopPropagation()">
+                                        <i class="fas fa-eye"></i> View Details
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination (if needed in future) -->
+                {% if sessions.has_other_pages %}
+                <nav aria-label="Page navigation" class="mt-3">
+                    <ul class="pagination justify-content-center">
+                        {% if sessions.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ sessions.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Previous</a>
+                        </li>
+                        {% endif %}
+
+                        <li class="page-item active">
+                            <span class="page-link">{{ sessions.number }}</span>
+                        </li>
+
+                        {% if sessions.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ sessions.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if role_filter %}&role={{ role_filter }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}">Next</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+
+                {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">No candidates found</h5>
+                    <p class="text-muted">Try adjusting your search filters or check back later.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.clickable-row:hover {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}
