@@ -8,6 +8,7 @@ class UserProfileAdmin(admin.ModelAdmin):
     list_filter = ('role', 'created_at')
     search_fields = ('user__username', 'name', 'email')
     readonly_fields = ('created_at',)
+    readonly_fields = ('created_at',)
 
 
 @admin.register(InterviewSession)
