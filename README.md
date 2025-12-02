@@ -182,8 +182,7 @@ python manage.py migrate
 4. Add tests if applicable
 5. Submit a pull request
 
-
-//commit 
+## commit
 
 
 
