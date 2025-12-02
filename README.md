@@ -162,6 +162,7 @@ SECRET_KEY=your_secret_key_here
 GEMINI_API_KEY=your_api_key_here
 DATABASE_URL=your_database_url
 ALLOWED_HOSTS=your_domain.com
+ALLOWED_HOSTS=your_domain.com
 ```
 
 ### Static Files
