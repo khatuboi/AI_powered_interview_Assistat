@@ -17,6 +17,7 @@ class InterviewSessionAdmin(admin.ModelAdmin):
     list_filter = ('role', 'status', 'created_at')
     search_fields = ('candidate__user__username', 'candidate__name')
     readonly_fields = ('created_at', 'completed_at')
+    readonly_fields = ('created_at', 'completed_at')
 
 
 @admin.register(InterviewQuestion)
